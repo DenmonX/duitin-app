@@ -147,6 +147,36 @@ export interface AppState {
   deleteCategoryGroup: (id: string, keepChildren: boolean) => void;
 }
 
+const toSnake = (obj: any): any => {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(toSnake);
+  const res: any = {};
+  for (const key of Object.keys(obj)) {
+    const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    if (key === 'createdAt' && typeof obj[key] === 'number') {
+      res['created_at'] = new Date(obj[key]).toISOString();
+    } else {
+      res[snakeKey] = obj[key];
+    }
+  }
+  return res;
+};
+
+const toCamel = (obj: any): any => {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(toCamel);
+  const res: any = {};
+  for (const key of Object.keys(obj)) {
+    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    if (key === 'created_at' && typeof obj[key] === 'string') {
+      res['createdAt'] = new Date(obj[key]).getTime();
+    } else {
+      res[camelKey] = obj[key];
+    }
+  }
+  return res;
+};
+
 const initialAccounts: Account[] = [
   { id: "a1", name: "Gopay", type: "e-wallet", balance: 1500000 },
   { id: "a2", name: "Bank BCA", type: "bank", balance: 8500000 },
@@ -226,14 +256,14 @@ export const useStore = create<AppState>()(
         const state = get();
         // Coba insert semua data dari lokal ke supabase
         try {
-          if (state.accounts.length) await supabase.from('accounts').upsert(state.accounts);
-          if (state.transactions.length) await supabase.from('transactions').upsert(state.transactions);
-          if (state.budgets.length) await supabase.from('budgets').upsert(state.budgets);
-          if (state.debts.length) await supabase.from('debts').upsert(state.debts);
-          if (state.bills.length) await supabase.from('bills').upsert(state.bills);
-          if (state.goals.length) await supabase.from('goals').upsert(state.goals);
-          if (state.customCategories.length) await supabase.from('categories').upsert(state.customCategories);
-          if (state.categoryGroups.length) await supabase.from('category_groups').upsert(state.categoryGroups);
+          if (state.accounts.length) await supabase.from('accounts').upsert(toSnake(state.accounts));
+          if (state.transactions.length) await supabase.from('transactions').upsert(toSnake(state.transactions));
+          if (state.budgets.length) await supabase.from('budgets').upsert(toSnake(state.budgets));
+          if (state.debts.length) await supabase.from('debts').upsert(toSnake(state.debts));
+          if (state.bills.length) await supabase.from('bills').upsert(toSnake(state.bills));
+          if (state.goals.length) await supabase.from('goals').upsert(toSnake(state.goals));
+          if (state.customCategories.length) await supabase.from('categories').upsert(toSnake(state.customCategories));
+          if (state.categoryGroups.length) await supabase.from('category_groups').upsert(toSnake(state.categoryGroups));
           console.log("Migrasi berhasil!");
         } catch (e) {
           console.error("Migrasi gagal", e);
@@ -253,14 +283,14 @@ export const useStore = create<AppState>()(
             supabase.from('category_groups').select('*'),
           ]);
           set({
-            accounts: accs.data || [],
-            transactions: txs.data || [],
-            budgets: bdg.data || [],
-            debts: dbt.data || [],
-            bills: bls.data || [],
-            goals: gls.data || [],
-            customCategories: cats.data || [],
-            categoryGroups: catGroups.data || [],
+            accounts: toCamel(accs.data) || [],
+            transactions: toCamel(txs.data) || [],
+            budgets: toCamel(bdg.data) || [],
+            debts: toCamel(dbt.data) || [],
+            bills: toCamel(bls.data) || [],
+            goals: toCamel(gls.data) || [],
+            customCategories: toCamel(cats.data) || [],
+            categoryGroups: toCamel(catGroups.data) || [],
           });
         } catch (e) {
           console.error("Fetch gagal", e);
@@ -325,10 +355,10 @@ export const useStore = create<AppState>()(
       });
       // Supabase Sync
       const state = get();
-      supabase.from('transactions').insert(state.transactions[0]).then();
+      supabase.from('transactions').insert(toSnake(state.transactions[0])).then();
       const updatedAcc = state.accounts.find(a => a.id === tx.accountId);
-      if (updatedAcc) supabase.from('accounts').upsert(updatedAcc).then();
-      if (state.bills.length) supabase.from('bills').upsert(state.bills).then();
+      if (updatedAcc) supabase.from('accounts').upsert(toSnake(updatedAcc)).then();
+      if (state.bills.length) supabase.from('bills').upsert(toSnake(state.bills)).then();
     },
 
     updateTransaction: (id, updatedTx) => {
@@ -364,11 +394,11 @@ export const useStore = create<AppState>()(
       // Supabase Sync
       const state = get();
       const newTx = state.transactions.find(t => t.id === id);
-      if (newTx) supabase.from('transactions').upsert(newTx).then();
+      if (newTx) supabase.from('transactions').upsert(toSnake(newTx)).then();
       const updatedAcc1 = state.accounts.find(a => a.id === updatedTx.accountId);
       const updatedAcc2 = state.accounts.find(a => a.id === state.transactions.find(t => t.id === id)?.accountId);
-      if (updatedAcc1) supabase.from('accounts').upsert(updatedAcc1).then();
-      if (updatedAcc2 && updatedAcc1?.id !== updatedAcc2.id) supabase.from('accounts').upsert(updatedAcc2).then();
+      if (updatedAcc1) supabase.from('accounts').upsert(toSnake(updatedAcc1)).then();
+      if (updatedAcc2 && updatedAcc1?.id !== updatedAcc2.id) supabase.from('accounts').upsert(toSnake(updatedAcc2)).then();
     },
 
     deleteTransaction: (id) => {
@@ -397,17 +427,17 @@ export const useStore = create<AppState>()(
       supabase.from('transactions').delete().eq('id', id).then();
       const state = get();
       const updatedAcc = state.accounts.find(a => a.id === deletedAccId);
-      if (updatedAcc) supabase.from('accounts').upsert(updatedAcc).then();
+      if (updatedAcc) supabase.from('accounts').upsert(toSnake(updatedAcc)).then();
     },
 
       addAccount: (account) => {
         const id = Math.random().toString(36).substring(2, 9);
         set((state) => ({ accounts: [...state.accounts, { ...account, id }] }));
-        supabase.from('accounts').insert({ ...account, id }).then();
+        supabase.from('accounts').insert(toSnake({ ...account, id })).then();
       },
       editAccount: (id, account) => {
         set((state) => ({ accounts: state.accounts.map(a => a.id === id ? { ...a, ...account } : a) }));
-        supabase.from('accounts').update(account).eq('id', id).then();
+        supabase.from('accounts').update(toSnake(account)).eq('id', id).then();
       },
       deleteAccount: (id) => {
         set((state) => ({ accounts: state.accounts.filter(a => a.id !== id) }));
@@ -423,7 +453,7 @@ export const useStore = create<AppState>()(
 
       payBill: (id) => {
         set((state) => ({ bills: state.bills.map(b => b.id === id ? { ...b, isPaid: true } : b) }));
-        supabase.from('bills').update({ isPaid: true }).eq('id', id).then();
+        supabase.from('bills').update(toSnake({ isPaid: true })).eq('id', id).then();
       },
       
       setTransactionPeriodStart: (day) => set(() => ({ transactionPeriodStart: day })),
@@ -431,11 +461,11 @@ export const useStore = create<AppState>()(
       addCustomCategory: (category) => {
         const id = Math.random().toString(36).substring(2, 9);
         set((state) => ({ customCategories: [...state.customCategories, { ...category, id }] }));
-        supabase.from('categories').insert({ ...category, id }).then();
+        supabase.from('categories').insert(toSnake({ ...category, id })).then();
       },
       editCustomCategory: (id, updated) => {
         set((state) => ({ customCategories: state.customCategories.map(c => c.id === id ? { ...c, ...updated } : c) }));
-        supabase.from('categories').update(updated).eq('id', id).then();
+        supabase.from('categories').update(toSnake(updated)).eq('id', id).then();
       },
       deleteCustomCategory: (id) => {
         set((state) => ({ customCategories: state.customCategories.filter(c => c.id !== id) }));
@@ -445,11 +475,11 @@ export const useStore = create<AppState>()(
       addCategoryGroup: (group) => {
         const id = Math.random().toString(36).substring(2, 9);
         set((state) => ({ categoryGroups: [...state.categoryGroups, { ...group, id }] }));
-        supabase.from('category_groups').insert({ ...group, id }).then();
+        supabase.from('category_groups').insert(toSnake({ ...group, id })).then();
       },
       editCategoryGroup: (id, group) => {
         set((state) => ({ categoryGroups: state.categoryGroups.map(g => g.id === id ? { ...g, ...group } : g) }));
-        supabase.from('category_groups').update(group).eq('id', id).then();
+        supabase.from('category_groups').update(toSnake(group)).eq('id', id).then();
         // Also update the `group` name in all customCategories that belonged to this group if the name changed
         const state = get();
         const existingGroup = state.categoryGroups.find(g => g.id === id);
@@ -458,30 +488,30 @@ export const useStore = create<AppState>()(
           set((s) => ({
             customCategories: s.customCategories.map(c => c.group === oldName ? { ...c, group: group.name! } : c)
           }));
-          supabase.from('categories').update({ group: group.name }).eq('group', oldName).then();
+          supabase.from('categories').update(toSnake({ group: group.name })).eq('group', oldName).then();
         }
       },
       deleteCategoryGroup: (id, keepChildren) => {
-        const state = get();
-        const groupToDelete = state.categoryGroups.find(g => g.id === id);
-        if (!groupToDelete) return;
+        set((state) => {
+          const groupToDelete = state.categoryGroups.find(g => g.id === id);
+          const newCategories = keepChildren && groupToDelete
+            ? state.customCategories.map(c => c.group === groupToDelete.name ? { ...c, group: "Lainnya" } : c)
+            : state.customCategories.filter(c => c.group !== groupToDelete?.name);
+            
+          if (keepChildren && groupToDelete) {
+            newCategories.filter(c => c.group === "Lainnya").forEach(c => {
+              supabase.from('categories').update(toSnake({ group: "Lainnya" })).eq('id', c.id).then();
+            });
+          } else if (!keepChildren && groupToDelete) {
+            supabase.from('categories').delete().eq('group', groupToDelete.name).then();
+          }
 
-        set((state) => ({ categoryGroups: state.categoryGroups.filter(g => g.id !== id) }));
+          return {
+            categoryGroups: state.categoryGroups.filter(g => g.id !== id),
+            customCategories: newCategories
+          };
+        });
         supabase.from('category_groups').delete().eq('id', id).then();
-
-        if (keepChildren) {
-          // move children to "Lainnya"
-          set((s) => ({
-            customCategories: s.customCategories.map(c => c.group === groupToDelete.name ? { ...c, group: "Lainnya" } : c)
-          }));
-          supabase.from('categories').update({ group: "Lainnya" }).eq('group', groupToDelete.name).then();
-        } else {
-          // delete children
-          set((s) => ({
-            customCategories: s.customCategories.filter(c => c.group !== groupToDelete.name)
-          }));
-          supabase.from('categories').delete().eq('group', groupToDelete.name).then();
-        }
       },
       
       addBill: (bill) => {
