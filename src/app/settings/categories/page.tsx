@@ -184,7 +184,7 @@ export default function CategoriesSettingsPage() {
       </div>
 
       {/* Floating Add Button */}
-      <button onClick={openAddModal} className="fixed bottom-8 sm:bottom-12 right-6 w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30 hover:scale-105 active:scale-95 transition-all z-20">
+      <button onClick={openAddModal} className="fixed bottom-24 sm:bottom-12 right-6 w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30 hover:scale-105 active:scale-95 transition-all z-50">
         <Plus className="w-6 h-6" />
       </button>
 
