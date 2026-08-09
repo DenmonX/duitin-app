@@ -347,7 +347,7 @@ export const useStore = create<AppState>()(
       });
       // Supabase Sync
       const state = get();
-      supabase.from('transactions').insert(toSnake(state.transactions[0])).then();
+      supabase.from('transactions').upsert(toSnake(state.transactions[0])).then();
       const updatedAcc = state.accounts.find(a => a.id === tx.accountId);
       if (updatedAcc) supabase.from('accounts').upsert(toSnake(updatedAcc)).then();
       if (state.bills.length) supabase.from('bills').upsert(toSnake(state.bills)).then();
@@ -425,7 +425,7 @@ export const useStore = create<AppState>()(
       addAccount: (account) => {
         const id = Math.random().toString(36).substring(2, 9);
         set((state) => ({ accounts: [...state.accounts, { ...account, id }] }));
-        supabase.from('accounts').insert(toSnake({ ...account, id })).then();
+        supabase.from('accounts').upsert(toSnake({ ...account, id })).then();
       },
       editAccount: (id, account) => {
         set((state) => ({ accounts: state.accounts.map(a => a.id === id ? { ...a, ...account } : a) }));
@@ -453,7 +453,7 @@ export const useStore = create<AppState>()(
       addCustomCategory: (category) => {
         const id = Math.random().toString(36).substring(2, 9);
         set((state) => ({ customCategories: [...state.customCategories, { ...category, id }] }));
-        supabase.from('categories').insert(toSnake({ ...category, id })).then();
+        supabase.from('categories').upsert(toSnake({ ...category, id })).then();
       },
       editCustomCategory: (id, updated) => {
         set((state) => ({ customCategories: state.customCategories.map(c => c.id === id ? { ...c, ...updated } : c) }));
@@ -467,7 +467,7 @@ export const useStore = create<AppState>()(
       addCategoryGroup: (group) => {
         const id = Math.random().toString(36).substring(2, 9);
         set((state) => ({ categoryGroups: [...state.categoryGroups, { ...group, id }] }));
-        supabase.from('category_groups').insert(toSnake({ ...group, id })).then();
+        supabase.from('category_groups').upsert(toSnake({ ...group, id })).then();
       },
       editCategoryGroup: (id, group) => {
         set((state) => ({ categoryGroups: state.categoryGroups.map(g => g.id === id ? { ...g, ...group } : g) }));
@@ -509,7 +509,7 @@ export const useStore = create<AppState>()(
       addBill: (bill) => {
         const id = Math.random().toString(36).substring(2, 9);
         set((state) => ({ bills: [...state.bills, { ...bill, id }] }));
-        supabase.from('bills').insert({ ...bill, id }).then();
+        supabase.from('bills').upsert(toSnake({ ...bill, id })).then();
       },
       editBill: (id, bill) => {
         set((state) => ({ bills: state.bills.map(b => b.id === id ? { ...b, ...bill } : b) }));
@@ -529,7 +529,7 @@ export const useStore = create<AppState>()(
       addGoal: (goal) => {
         const id = Math.random().toString(36).substring(2, 9);
         set((state) => ({ goals: [...state.goals, { ...goal, id }] }));
-        supabase.from('goals').insert({ ...goal, id }).then();
+        supabase.from('goals').upsert(toSnake({ ...goal, id })).then();
       },
       editGoal: (id, goal) => {
         set((state) => ({ goals: state.goals.map(g => g.id === id ? { ...g, ...goal } : g) }));
@@ -547,7 +547,7 @@ export const useStore = create<AppState>()(
       addDebt: (debt) => {
         const id = Math.random().toString(36).substring(2, 9);
         set((state) => ({ debts: [...state.debts, { ...debt, id }] }));
-        supabase.from('debts').insert({ ...debt, id }).then();
+        supabase.from('debts').upsert(toSnake({ ...debt, id })).then();
       },
       editDebt: (id, debt) => {
         set((state) => ({ debts: state.debts.map(d => d.id === id ? { ...d, ...debt } : d) }));
@@ -561,7 +561,7 @@ export const useStore = create<AppState>()(
       addBudget: (budget) => {
         const id = Math.random().toString(36).substring(2, 9);
         set((state) => ({ budgets: [...state.budgets, { ...budget, id }] }));
-        supabase.from('budgets').insert({ ...budget, id }).then();
+        supabase.from('budgets').upsert(toSnake({ ...budget, id })).then();
       },
       editBudget: (id, budget) => {
         set((state) => ({ budgets: state.budgets.map(b => b.id === id ? { ...b, ...budget } : b) }));
