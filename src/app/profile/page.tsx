@@ -61,6 +61,39 @@ export default function ProfilePage() {
     }
   };
 
+  const getConsistentDays = () => {
+    if (!transactions.length) return 0;
+    const uniqueDates = Array.from(new Set(transactions.map(t => {
+      const d = new Date(t.date);
+      return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    })));
+
+    let streak = 0;
+    let checkDate = new Date();
+    
+    while (true) {
+      const dateStr = `${checkDate.getFullYear()}-${checkDate.getMonth()}-${checkDate.getDate()}`;
+      if (uniqueDates.includes(dateStr)) {
+        streak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        if (streak === 0) {
+          checkDate.setDate(checkDate.getDate() - 1);
+          const yesterdayStr = `${checkDate.getFullYear()}-${checkDate.getMonth()}-${checkDate.getDate()}`;
+          if (uniqueDates.includes(yesterdayStr)) {
+            streak++;
+            checkDate.setDate(checkDate.getDate() - 1);
+            continue;
+          }
+        }
+        break;
+      }
+    }
+    return streak;
+  };
+
+  const consistentDays = getConsistentDays();
+
   return (
     <div className="flex flex-col min-h-screen pb-24">
       {/* Header Profile */}
@@ -131,7 +164,7 @@ export default function ProfilePage() {
                 <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Transaksi</span>
               </div>
               <div className="p-4 flex flex-col items-center justify-center text-center gap-1">
-                <span className="text-2xl font-bold text-blue-500">14</span>
+                <span className="text-2xl font-bold text-blue-500">{consistentDays}</span>
                 <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Hari Konsisten</span>
               </div>
             </div>
