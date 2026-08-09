@@ -1,5 +1,5 @@
 import { create } from "zustand";
-
+import { persist } from "zustand/middleware";
 import { supabase } from "@/lib/supabase";
 import { ReceiptText, Coffee, Wallet as WalletIcon, Landmark, Banknote, Lock, ShoppingBag, Gamepad2, Train, CreditCard } from "lucide-react";
 
@@ -185,6 +185,7 @@ const initialTransactions: Transaction[] = [
 ];
 
 export const useStore = create<AppState>()(
+  persist(
     (set, get) => ({
       user: {
         name: "Abdul",
@@ -572,7 +573,12 @@ export const useStore = create<AppState>()(
         set((state) => ({ budgets: state.budgets.filter(b => b.id !== id) }));
         supabase.from('budgets').delete().eq('id', id).then();
       }
-    })
+    }),
+    {
+      name: 'duitin-user-profile',
+      partialize: (state) => ({ user: state.user }),
+    }
+  )
 );
 
 export const getCategoryIcon = (categoryId: string) => {
