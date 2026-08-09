@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useStore, Transaction, getAccountIcon } from "@/store/useStore";
-import { Wallet, Search, Filter, ChevronLeft, ChevronRight, ChevronDown, Trash2 } from "lucide-react";
+import { Wallet, Search, Filter, ChevronLeft, ChevronRight, ChevronDown, Trash2, PieChart } from "lucide-react";
 import { cn, getGlassyColor } from "@/lib/utils";
 import * as LucideIcons from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -79,8 +80,12 @@ export default function HistoryPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background pb-24">
       {/* Header */}
-      <header className="flex items-center justify-center p-4 sticky top-0 bg-background z-10 border-b border-transparent">
+      <header className="flex items-center justify-between p-4 sticky top-0 bg-background z-10 border-b border-transparent">
+        <div className="w-10"></div> {/* Spacer for center alignment */}
         <h1 className="font-bold text-base">Transaksi</h1>
+        <Link href="/report" className="w-10 h-10 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors bg-secondary/50 rounded-full active:scale-95">
+          <PieChart className="w-5 h-5" />
+        </Link>
       </header>
 
       <div className="px-4 space-y-4">
