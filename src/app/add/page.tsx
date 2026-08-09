@@ -28,7 +28,7 @@ function AddTransactionContent() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("editId");
   
-  const { accounts, addTransaction, updateTransaction, transactions, templates, saveTemplate, customCategories } = useStore();
+  const { accounts, addTransaction, updateTransaction, transactions, templates, saveTemplate, customCategories, categoryGroups } = useStore();
   
   const [type, setType] = useState<TransactionType>("expense");
   const [amountStr, setAmountStr] = useState("");
@@ -181,11 +181,7 @@ function AddTransactionContent() {
   const accIconInfo = getAccountIcon(accInfo?.type || "bank");
 
   const filteredCategories = customCategories.filter(c => c.type === type);
-  const groupedCategories = filteredCategories.reduce((acc, cat) => {
-    if (!acc[cat.group]) acc[cat.group] = [];
-    acc[cat.group].push(cat);
-    return acc;
-  }, {} as Record<string, typeof customCategories>);
+  const filteredGroups = categoryGroups.filter(g => g.type === type);
 
   return (
     <div className="flex flex-col h-[100dvh] bg-background overflow-hidden">
@@ -330,43 +326,50 @@ function AddTransactionContent() {
             <DialogTitle className="text-center text-lg font-bold">Pilih Kategori {type === 'expense' ? 'Pengeluaran' : 'Pemasukan'}</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-4">
-            {Object.entries(groupedCategories).map(([groupName, categories]) => (
-              <div key={groupName} className="bg-card/40 border border-border/50 rounded-3xl overflow-hidden">
-                {/* Header Group */}
-                <div className="flex items-center gap-3 p-4 bg-secondary/20">
-                  <div className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center shrink-0">
-                    <span className="text-sm">💡</span>
+            {filteredGroups.map((group) => {
+              const categories = filteredCategories.filter(c => c.group === group.name);
+              if (categories.length === 0) return null;
+              
+              return (
+                <div key={group.id} className="bg-card/40 border border-border/50 rounded-3xl overflow-hidden relative">
+                  <div className={cn("absolute top-0 left-0 w-full h-1", type === "expense" ? "bg-rose-500" : "bg-emerald-500")} />
+                  
+                  {/* Header Group */}
+                  <div className="flex items-center gap-3 p-4 bg-secondary/20">
+                    <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", getGlassyColor(group.color))}>
+                      <span className="text-sm">{group.iconName}</span>
+                    </div>
+                    <h3 className="font-bold text-sm text-foreground flex-1">{group.name}</h3>
                   </div>
-                  <h3 className="font-bold text-sm text-foreground flex-1">{groupName}</h3>
-                </div>
-                {/* List Items */}
-                <div className="flex flex-col">
-                  {categories.map((cat, i) => (
-                    <button 
-                      key={cat.id} 
-                      onClick={() => { setCategoryId(cat.id); setIsCategoryOpen(false); }}
-                      className={cn(
-                        "flex items-center gap-4 p-4 text-left transition-colors hover:bg-secondary/40",
-                        i !== 0 && "border-t border-border/30",
-                        categoryId === cat.id && "bg-emerald-500/10 hover:bg-emerald-500/20"
-                      )}
-                    >
-                      <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", getGlassyColor(cat.color))}>
-                        <span className="text-sm leading-none">{cat.iconName}</span>
-                      </div>
-                      <span className="text-sm font-semibold flex-1">{cat.name}</span>
-                      {categoryId === cat.id && (
-                        <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
-                           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                           </svg>
+                  {/* List Items */}
+                  <div className="flex flex-col">
+                    {categories.map((cat, i) => (
+                      <button 
+                        key={cat.id} 
+                        onClick={() => { setCategoryId(cat.id); setIsCategoryOpen(false); }}
+                        className={cn(
+                          "flex items-center gap-4 p-4 text-left transition-colors hover:bg-secondary/40",
+                          i !== 0 && "border-t border-border/30",
+                          categoryId === cat.id && "bg-emerald-500/10 hover:bg-emerald-500/20"
+                        )}
+                      >
+                        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", getGlassyColor(cat.color))}>
+                          <span className="text-sm leading-none">{cat.iconName}</span>
                         </div>
-                      )}
-                    </button>
-                  ))}
+                        <span className="text-sm font-semibold flex-1">{cat.name}</span>
+                        {categoryId === cat.id && (
+                          <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                             <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                             </svg>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </DialogContent>
       </Dialog>
