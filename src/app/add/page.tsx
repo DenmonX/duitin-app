@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { 
   ArrowDownLeft, ArrowUpRight, ArrowLeft,
   Wallet, Calendar, AlignLeft, 
-  ChevronRight, Delete, Bookmark, LayoutTemplate
+  ChevronRight, Delete, Bookmark, LayoutTemplate, Search
 } from "lucide-react";
 import { cn, getGlassyColor } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ function AddTransactionContent() {
   const [date, setDate] = useState<Date>(new Date());
   
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [searchCategory, setSearchCategory] = useState("");
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isTemplateOpen, setIsTemplateOpen] = useState(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
@@ -325,9 +326,24 @@ function AddTransactionContent() {
           <DialogHeader className="px-6 py-2 shrink-0">
             <DialogTitle className="text-center text-lg font-bold">Pilih Kategori {type === 'expense' ? 'Pengeluaran' : 'Pemasukan'}</DialogTitle>
           </DialogHeader>
+          <div className="px-6 pb-4 shrink-0">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input 
+                type="text" 
+                placeholder="Cari kategori..." 
+                value={searchCategory}
+                onChange={(e) => setSearchCategory(e.target.value)}
+                className="w-full bg-secondary/30 border border-border/50 rounded-xl h-10 pl-9 pr-4 text-sm outline-none focus:border-primary/50 transition-colors"
+              />
+            </div>
+          </div>
           <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-4">
             {filteredGroups.map((group) => {
-              const categories = filteredCategories.filter(c => c.group === group.name);
+              const categories = filteredCategories.filter(c => 
+                c.group === group.name && 
+                c.name.toLowerCase().includes(searchCategory.toLowerCase())
+              );
               if (categories.length === 0) return null;
               
               return (
