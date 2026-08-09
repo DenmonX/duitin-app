@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore, Transaction, getAccountIcon } from "@/store/useStore";
 import { Wallet, Search, Filter, ChevronLeft, ChevronRight, ChevronDown, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getGlassyColor } from "@/lib/utils";
 import * as LucideIcons from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -169,7 +169,7 @@ export default function HistoryPage() {
                       )}
                     >
                       {/* Icon */}
-                      <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-sm", cat?.color || "bg-secondary/80")}>
+                      <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm", cat ? getGlassyColor(cat.color) : getGlassyColor("bg-blue-500"))}>
                         <span className="text-xl leading-none">{cat?.iconName || "💡"}</span>
                       </div>
                       

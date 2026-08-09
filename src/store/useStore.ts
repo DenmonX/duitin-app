@@ -75,6 +75,15 @@ export interface CustomCategory {
   color?: string;
 }
 
+export interface CategoryGroup {
+  id: string;
+  name: string;
+  type: TransactionType;
+  iconName: string;
+  color?: string;
+  createdAt?: number;
+}
+
 export interface AppState {
   user: {
     name: string;
@@ -90,6 +99,7 @@ export interface AppState {
   goals: Goal[];
   templates: TransactionTemplate[];
   customCategories: CustomCategory[];
+  categoryGroups: CategoryGroup[];
   transactionPeriodStart: number;
   
   // Supabase Sync
@@ -131,6 +141,10 @@ export interface AppState {
   addCustomCategory: (category: Omit<CustomCategory, "id">) => void;
   editCustomCategory: (id: string, category: Partial<CustomCategory>) => void;
   deleteCustomCategory: (id: string) => void;
+
+  addCategoryGroup: (group: Omit<CategoryGroup, "id">) => void;
+  editCategoryGroup: (id: string, group: Partial<CategoryGroup>) => void;
+  deleteCategoryGroup: (id: string, keepChildren: boolean) => void;
 }
 
 const initialAccounts: Account[] = [
@@ -197,6 +211,16 @@ export const useStore = create<AppState>()(
         { id: "c15", name: "Potong Rambut", type: "expense", iconName: "✂️", group: "Perawatan Diri", badge: "Kebutuhan" },
         { id: "c16", name: "Biaya Bank", type: "expense", iconName: "🏦", group: "Lainnya", badge: "Kebutuhan" },
       ],
+      categoryGroups: [
+        { id: "cg1", name: "Tagihan & Utilitas", type: "expense", iconName: "💡", color: "bg-blue-500" },
+        { id: "cg2", name: "Pendidikan", type: "expense", iconName: "🎓", color: "bg-indigo-500" },
+        { id: "cg3", name: "Makanan & Minuman", type: "expense", iconName: "🍔", color: "bg-orange-500" },
+        { id: "cg4", name: "Kesehatan", type: "expense", iconName: "🏥", color: "bg-rose-500" },
+        { id: "cg5", name: "Belanja", type: "expense", iconName: "🛍️", color: "bg-fuchsia-500" },
+        { id: "cg6", name: "Transportasi", type: "expense", iconName: "🚌", color: "bg-cyan-500" },
+        { id: "cg7", name: "Perawatan Diri", type: "expense", iconName: "💆", color: "bg-emerald-500" },
+        { id: "cg8", name: "Lainnya", type: "expense", iconName: "📦", color: "bg-gray-500" },
+      ],
 
       migrateToSupabase: async () => {
         const state = get();
@@ -209,6 +233,7 @@ export const useStore = create<AppState>()(
           if (state.bills.length) await supabase.from('bills').upsert(state.bills);
           if (state.goals.length) await supabase.from('goals').upsert(state.goals);
           if (state.customCategories.length) await supabase.from('categories').upsert(state.customCategories);
+          if (state.categoryGroups.length) await supabase.from('category_groups').upsert(state.categoryGroups);
           console.log("Migrasi berhasil!");
         } catch (e) {
           console.error("Migrasi gagal", e);
@@ -217,7 +242,7 @@ export const useStore = create<AppState>()(
 
       fetchFromSupabase: async () => {
         try {
-          const [accs, txs, bdg, dbt, bls, gls, cats] = await Promise.all([
+          const [accs, txs, bdg, dbt, bls, gls, cats, catGroups] = await Promise.all([
             supabase.from('accounts').select('*'),
             supabase.from('transactions').select('*'),
             supabase.from('budgets').select('*'),
@@ -225,6 +250,7 @@ export const useStore = create<AppState>()(
             supabase.from('bills').select('*'),
             supabase.from('goals').select('*'),
             supabase.from('categories').select('*'),
+            supabase.from('category_groups').select('*'),
           ]);
           set({
             accounts: accs.data || [],
@@ -234,6 +260,7 @@ export const useStore = create<AppState>()(
             bills: bls.data || [],
             goals: gls.data || [],
             customCategories: cats.data || [],
+            categoryGroups: catGroups.data || [],
           });
         } catch (e) {
           console.error("Fetch gagal", e);
@@ -413,6 +440,48 @@ export const useStore = create<AppState>()(
       deleteCustomCategory: (id) => {
         set((state) => ({ customCategories: state.customCategories.filter(c => c.id !== id) }));
         supabase.from('categories').delete().eq('id', id).then();
+      },
+
+      addCategoryGroup: (group) => {
+        const id = Math.random().toString(36).substring(2, 9);
+        set((state) => ({ categoryGroups: [...state.categoryGroups, { ...group, id }] }));
+        supabase.from('category_groups').insert({ ...group, id }).then();
+      },
+      editCategoryGroup: (id, group) => {
+        set((state) => ({ categoryGroups: state.categoryGroups.map(g => g.id === id ? { ...g, ...group } : g) }));
+        supabase.from('category_groups').update(group).eq('id', id).then();
+        // Also update the `group` name in all customCategories that belonged to this group if the name changed
+        const state = get();
+        const existingGroup = state.categoryGroups.find(g => g.id === id);
+        if (existingGroup && group.name && existingGroup.name !== group.name) {
+          const oldName = existingGroup.name;
+          set((s) => ({
+            customCategories: s.customCategories.map(c => c.group === oldName ? { ...c, group: group.name! } : c)
+          }));
+          supabase.from('categories').update({ group: group.name }).eq('group', oldName).then();
+        }
+      },
+      deleteCategoryGroup: (id, keepChildren) => {
+        const state = get();
+        const groupToDelete = state.categoryGroups.find(g => g.id === id);
+        if (!groupToDelete) return;
+
+        set((state) => ({ categoryGroups: state.categoryGroups.filter(g => g.id !== id) }));
+        supabase.from('category_groups').delete().eq('id', id).then();
+
+        if (keepChildren) {
+          // move children to "Lainnya"
+          set((s) => ({
+            customCategories: s.customCategories.map(c => c.group === groupToDelete.name ? { ...c, group: "Lainnya" } : c)
+          }));
+          supabase.from('categories').update({ group: "Lainnya" }).eq('group', groupToDelete.name).then();
+        } else {
+          // delete children
+          set((s) => ({
+            customCategories: s.customCategories.filter(c => c.group !== groupToDelete.name)
+          }));
+          supabase.from('categories').delete().eq('group', groupToDelete.name).then();
+        }
       },
       
       addBill: (bill) => {

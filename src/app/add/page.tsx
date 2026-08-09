@@ -7,7 +7,7 @@ import {
   Wallet, Calendar, AlignLeft, 
   ChevronRight, Delete, Bookmark, LayoutTemplate
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getGlassyColor } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useStore, TransactionType, getCategoryIcon, getAccountIcon, TransactionTemplate } from "@/store/useStore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -234,8 +234,8 @@ function AddTransactionContent() {
       <div className="px-4 pb-2 space-y-2 shrink-0">
         <div className="flex gap-2">
           <button onClick={() => setIsCategoryOpen(true)} className="flex-1 flex items-center gap-2 p-2.5 rounded-xl bg-secondary/50 border border-border/50 hover:bg-secondary transition-colors overflow-hidden">
-            <div className={cn("w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white", selectedCat?.color || "bg-blue-500")}>
-              <span className="text-[13px] leading-none">{selectedCat?.iconName}</span>
+            <div className={cn("w-7 h-7 rounded-full flex items-center justify-center shrink-0", selectedCat ? getGlassyColor(selectedCat.color) : getGlassyColor("bg-blue-500"))}>
+              <span className="text-[13px] leading-none">{selectedCat?.iconName || "💡"}</span>
             </div>
             <span className="text-xs sm:text-sm font-medium capitalize text-left flex-1 truncate">{selectedCat?.name || "Pilih"}</span>
           </button>
@@ -351,7 +351,7 @@ function AddTransactionContent() {
                         categoryId === cat.id && "bg-emerald-500/10 hover:bg-emerald-500/20"
                       )}
                     >
-                      <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-white", cat.color || "bg-blue-500")}>
+                      <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", getGlassyColor(cat.color))}>
                         <span className="text-sm leading-none">{cat.iconName}</span>
                       </div>
                       <span className="text-sm font-semibold flex-1">{cat.name}</span>
@@ -416,7 +416,7 @@ function AddTransactionContent() {
                 return (
                   <button key={t.id} onClick={() => applyTemplate(t)} className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary/50 hover:bg-secondary transition-colors text-left group">
                     <div className="flex items-center gap-4">
-                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0", cat?.color || "bg-blue-500")}>
+                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", getGlassyColor(cat?.color))}>
                         <span className="text-lg leading-none">{cat?.iconName || "💡"}</span>
                       </div>
                       <div>

@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Search, Plus, ArrowUpRight, ArrowDownLeft, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { useStore, CustomCategory } from "@/store/useStore";
+import { getGlassyColor } from "@/lib/utils";
+import { useStore, CustomCategory, CategoryGroup } from "@/store/useStore";
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { useTheme } from "next-themes";
@@ -17,7 +18,11 @@ import { Label } from "@/components/ui/label";
 export default function CategoriesSettingsPage() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { customCategories, addCustomCategory, editCustomCategory, deleteCustomCategory } = useStore();
+  const { 
+    customCategories, categoryGroups, 
+    addCustomCategory, editCustomCategory, deleteCustomCategory,
+    addCategoryGroup, editCategoryGroup, deleteCategoryGroup
+  } = useStore();
   const [activeTab, setActiveTab] = useState<"expense" | "income">("expense");
   const [searchQuery, setSearchQuery] = useState("");
   
@@ -35,16 +40,51 @@ export default function CategoriesSettingsPage() {
     "bg-fuchsia-500", "bg-rose-500"
   ];
 
+  const filteredGroups = categoryGroups.filter(g => g.type === activeTab);
   const filteredCategories = customCategories.filter(
     (c) => c.type === activeTab && c.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Group by 'group' property
-  const groupedCategories = filteredCategories.reduce((acc, cat) => {
-    if (!acc[cat.group]) acc[cat.group] = [];
-    acc[cat.group].push(cat);
-    return acc;
-  }, {} as Record<string, typeof customCategories>);
+  // Group modal state
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<CategoryGroup | null>(null);
+  const [groupFormData, setGroupFormData] = useState({
+    name: "", iconName: "💡", color: "bg-blue-500"
+  });
+
+  const openGroupModal = (group?: CategoryGroup) => {
+    if (group) {
+      setEditingGroup(group);
+      setGroupFormData({ name: group.name, iconName: group.iconName, color: group.color || "bg-blue-500" });
+    } else {
+      setEditingGroup(null);
+      setGroupFormData({ name: "", iconName: "💡", color: "bg-blue-500" });
+    }
+    setPickerView("form");
+    setIsGroupModalOpen(true);
+  };
+
+  const handleGroupSave = () => {
+    if (!groupFormData.name) return;
+    if (editingGroup) {
+      editCategoryGroup(editingGroup.id, groupFormData);
+    } else {
+      addCategoryGroup({ ...groupFormData, type: activeTab });
+    }
+    setIsGroupModalOpen(false);
+  };
+
+  const handleGroupDelete = () => {
+    if (editingGroup) {
+      if (confirm(`Hapus grup "${editingGroup.name}" beserta semua subkategorinya?`)) {
+        deleteCategoryGroup(editingGroup.id, false);
+      } else {
+        // Move children to "Lainnya"
+        deleteCategoryGroup(editingGroup.id, true);
+      }
+      setIsGroupModalOpen(false);
+    }
+  };
 
   const openAddModal = () => {
     setEditingCat(null);
@@ -111,70 +151,85 @@ export default function CategoriesSettingsPage() {
           </button>
         </div>
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input 
-            type="text" 
-            placeholder="Cari kategori..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-secondary/30 border border-border/50 rounded-xl py-3 pl-10 pr-4 text-sm outline-none focus:border-primary/50 transition-colors"
-          />
+        {/* Search & Add Group */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input 
+              type="text" 
+              placeholder="Cari kategori..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-secondary/30 border border-border/50 rounded-xl py-3 pl-10 pr-4 text-sm outline-none focus:border-primary/50 transition-colors"
+            />
+          </div>
+          <button onClick={() => openGroupModal()} className="w-12 h-12 flex-shrink-0 bg-secondary/30 border border-border/50 rounded-xl flex items-center justify-center hover:bg-secondary/60 transition-colors" title="Tambah Kategori Induk">
+            <LucideIcons.FolderPlus className="w-5 h-5 text-foreground" />
+          </button>
         </div>
 
         {/* Category List */}
         <div className="space-y-4">
-          {Object.entries(groupedCategories).map(([groupName, categories]) => (
-            <div key={groupName} className="bg-card/40 border border-border/50 rounded-3xl overflow-hidden relative">
-              <div className={cn("absolute top-0 left-0 w-full h-1", activeTab === "expense" ? "bg-rose-500" : "bg-emerald-500")} />
-              
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
-                      <LucideIcons.Lightbulb className={cn("w-5 h-5", activeTab === "expense" ? "text-amber-500" : "text-emerald-500")} />
-                    </div>
-                    <h3 className="font-bold">{groupName}</h3>
-                  </div>
-                  {/* Badge representing group default badge */}
-                  {categories.length > 0 && (
-                    <span className="text-[10px] font-semibold text-blue-400 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20">
-                      {categories[0].badge.split("•")[0].trim()}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-3 px-1">
-                  <span>Geser kiri hapus · Ketuk edit</span>
-                  <button onClick={openAddModal} className="w-6 h-6 rounded border border-border/50 flex items-center justify-center hover:bg-secondary transition-colors">
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                <div className="space-y-2">
-                  {categories.map((cat) => (
-                    <div onClick={() => openEditModal(cat)} key={cat.id} className="flex items-center justify-between p-3 rounded-2xl bg-secondary/30 border border-border/50 hover:bg-secondary/60 transition-colors cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-white", cat.color || "bg-blue-500")}>
-                          <span className="text-base leading-none">{cat.iconName}</span>
-                        </div>
-                        <span className="font-semibold text-sm">{cat.name}</span>
+          {filteredGroups.map((group) => {
+            const categories = filteredCategories.filter(c => c.group === group.name);
+            if (searchQuery && categories.length === 0) return null; // hide if searching and no matches
+            
+            return (
+              <div key={group.id} className="bg-card/40 border border-border/50 rounded-3xl overflow-hidden relative">
+                <div className={cn("absolute top-0 left-0 w-full h-1", activeTab === "expense" ? "bg-rose-500" : "bg-emerald-500")} />
+                
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3 cursor-pointer group" onClick={() => openGroupModal(group)}>
+                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center transition-all", getGlassyColor(group.color))}>
+                        <span className="text-xl leading-none">{group.iconName}</span>
                       </div>
-                      <span className={cn(
-                        "text-[10px] font-semibold px-2 py-1 rounded-md border",
-                        cat.badge.includes("Tabungan") ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" : "text-blue-400 bg-blue-500/10 border-blue-500/20"
-                      )}>
-                        {cat.badge}
-                      </span>
+                      <h3 className="font-bold group-hover:text-primary transition-colors">{group.name}</h3>
                     </div>
-                  ))}
+                    {/* Badge representing group default badge */}
+                    {categories.length > 0 && (
+                      <span className="text-[10px] font-semibold text-blue-400 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20">
+                        {categories[0].badge.split("•")[0].trim()}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-3 px-1">
+                    <span>Ketuk kategori untuk edit</span>
+                    <button onClick={() => { setFormData({...formData, group: group.name}); openAddModal(); }} className="w-6 h-6 rounded border border-border/50 flex items-center justify-center hover:bg-secondary transition-colors">
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {categories.map((cat) => (
+                      <div onClick={() => openEditModal(cat)} key={cat.id} className="flex items-center justify-between p-3 rounded-2xl bg-secondary/30 border border-border/50 hover:bg-secondary/60 transition-colors cursor-pointer">
+                        <div className="flex items-center gap-3">
+                          <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", getGlassyColor(cat.color))}>
+                            <span className="text-base leading-none">{cat.iconName}</span>
+                          </div>
+                          <span className="font-semibold text-sm">{cat.name}</span>
+                        </div>
+                        <span className={cn(
+                          "text-[10px] font-semibold px-2 py-1 rounded-md border",
+                          cat.badge.includes("Tabungan") ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" : "text-blue-400 bg-blue-500/10 border-blue-500/20"
+                        )}>
+                          {cat.badge}
+                        </span>
+                      </div>
+                    ))}
+                    {categories.length === 0 && (
+                      <div className="text-center py-4 text-xs text-muted-foreground bg-secondary/10 rounded-2xl border border-dashed border-border/50">
+                        Belum ada subkategori
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           
-          {Object.keys(groupedCategories).length === 0 && (
+          {filteredGroups.length === 0 && (
             <div className="text-center py-10 text-muted-foreground text-sm">
               Tidak ada kategori yang ditemukan.
             </div>
@@ -255,17 +310,19 @@ export default function CategoriesSettingsPage() {
                       <span className="text-[10px] font-bold text-muted-foreground">Pilih induk (opsional)</span>
                     </button>
 
-                    {Object.keys(groupedCategories).filter(g => g !== "Lainnya").map((groupName) => (
+                    {filteredGroups.filter(g => g.name !== "Lainnya").map((group) => (
                       <button 
-                        key={groupName}
-                        onClick={() => setFormData({ ...formData, group: groupName })}
+                        key={group.id}
+                        onClick={() => setFormData({ ...formData, group: group.name })}
                         className={cn(
                           "flex flex-col items-center justify-center p-3 rounded-2xl border min-w-[100px] shrink-0 transition-colors",
-                          formData.group === groupName ? "bg-secondary/50 border-primary/50" : "bg-secondary/20 border-border/50"
+                          formData.group === group.name ? "bg-secondary/50 border-primary/50" : "bg-secondary/20 border-border/50"
                         )}
                       >
-                        <LucideIcons.Lightbulb className={cn("w-6 h-6 mb-2", activeTab === "expense" ? "text-amber-500" : "text-emerald-500")} />
-                        <span className="text-[10px] font-bold text-muted-foreground truncate w-full text-center">{groupName}</span>
+                        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center mb-2", getGlassyColor(group.color))}>
+                          <span className="text-base leading-none">{group.iconName}</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-muted-foreground truncate w-full text-center">{group.name}</span>
                       </button>
                     ))}
                   </div>
@@ -379,6 +436,123 @@ export default function CategoriesSettingsPage() {
                 </Button>
                 <Button onClick={handleSave} className="flex-[2] rounded-xl h-12 bg-emerald-500 hover:bg-emerald-600 text-white font-bold">
                   Tambah Kategori
+                </Button>
+              </>
+            )}
+          </div>
+
+        </DialogContent>
+      </Dialog>
+
+      {/* Add / Edit Group Dialog */}
+      <Dialog open={isGroupModalOpen} onOpenChange={setIsGroupModalOpen}>
+        <DialogContent className="w-[95vw] sm:max-w-md rounded-[32px] p-0 bg-background border border-border/50 overflow-hidden flex flex-col max-h-[90vh]">
+          
+          <div className="w-12 h-1.5 bg-border rounded-full mx-auto mt-3 mb-1" />
+          
+          <DialogHeader className="px-6 py-2">
+            <DialogTitle className="text-center text-lg font-bold">
+              {pickerView === "form" ? (editingGroup ? "Edit Kategori Induk" : "Tambah Kategori Induk") : 
+               pickerView === "icon" ? "Pilih Ikon" : "Pilih Warna"}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="px-6 py-4 overflow-y-auto space-y-6">
+            
+            {pickerView === "form" && (
+              <>
+                {/* Nama Grup */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-foreground">Nama Kategori Induk</Label>
+                  <Input 
+                    value={groupFormData.name} 
+                    onChange={e => setGroupFormData({ ...groupFormData, name: e.target.value })}
+                    placeholder="mis. Pendidikan"
+                    className="bg-secondary/20 border-border/50 rounded-xl h-12 px-4"
+                  />
+                </div>
+
+                {/* Tampilan */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-foreground">Tampilan</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button onClick={() => setPickerView("icon")} className="flex items-center gap-3 p-3 rounded-2xl border border-border/50 bg-secondary/20 hover:bg-secondary/40 transition-colors text-left">
+                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", getGlassyColor(groupFormData.color))}>
+                        <span className="text-xl leading-none">{groupFormData.iconName}</span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Emoji</p>
+                        <p className="text-xs font-bold flex items-center gap-1">Ubah emoji <LucideIcons.ChevronRight className="w-3 h-3" /></p>
+                      </div>
+                    </button>
+
+                    <button onClick={() => setPickerView("color")} className="flex items-center gap-3 p-3 rounded-2xl border border-border/50 bg-secondary/20 hover:bg-secondary/40 transition-colors text-left">
+                      <div className={cn("w-10 h-10 rounded-xl shrink-0", getGlassyColor(groupFormData.color))} />
+                      <div>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Warna</p>
+                        <p className="text-xs font-bold flex items-center gap-1">Ubah warna <LucideIcons.ChevronRight className="w-3 h-3" /></p>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {pickerView === "icon" && (
+              <div className="flex justify-center py-2 -mx-2">
+                <Picker 
+                  data={data} 
+                  onEmojiSelect={(emoji: any) => { 
+                    setGroupFormData({...groupFormData, iconName: emoji.native}); 
+                    setPickerView("form"); 
+                  }} 
+                  theme={theme === 'dark' ? 'dark' : 'light'}
+                  previewPosition="none"
+                  skinTonePosition="none"
+                />
+              </div>
+            )}
+
+            {pickerView === "color" && (
+              <div className="grid grid-cols-5 gap-4 py-2">
+                {availableColors.map(color => (
+                  <button 
+                    key={color}
+                    onClick={() => { setGroupFormData({...groupFormData, color}); setPickerView("form"); }}
+                    className={cn(
+                      "aspect-square rounded-full transition-all",
+                      color,
+                      groupFormData.color === color ? "scale-110 shadow-lg ring-2 ring-foreground ring-offset-2 ring-offset-background" : "hover:scale-105"
+                    )}
+                  />
+                ))}
+              </div>
+            )}
+            
+          </div>
+
+          {/* Footer Actions */}
+          <div className="p-4 border-t border-border/50 flex gap-3 bg-background">
+            {pickerView !== "form" ? (
+              <Button onClick={() => setPickerView("form")} className="w-full rounded-xl h-12 bg-secondary text-foreground hover:bg-secondary/80 font-bold">
+                Kembali
+              </Button>
+            ) : editingGroup ? (
+              <>
+                <Button variant="secondary" onClick={handleGroupDelete} className="flex-1 rounded-xl h-12 bg-secondary/50 text-rose-500 hover:bg-rose-500/20 font-bold">
+                  Hapus
+                </Button>
+                <Button onClick={handleGroupSave} className="flex-[2] rounded-xl h-12 bg-emerald-500 hover:bg-emerald-600 text-white font-bold">
+                  Simpan
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="secondary" onClick={() => setIsGroupModalOpen(false)} className="flex-1 rounded-xl h-12 bg-secondary text-foreground hover:bg-secondary/80 font-bold">
+                  Batal
+                </Button>
+                <Button onClick={handleGroupSave} className="flex-[2] rounded-xl h-12 bg-emerald-500 hover:bg-emerald-600 text-white font-bold">
+                  Tambah
                 </Button>
               </>
             )}
