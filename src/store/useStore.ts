@@ -153,11 +153,7 @@ const toSnake = (obj: any): any => {
   const res: any = {};
   for (const key of Object.keys(obj)) {
     const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-    if (key === 'createdAt' && typeof obj[key] === 'number') {
-      res['created_at'] = new Date(obj[key]).toISOString();
-    } else {
-      res[snakeKey] = obj[key];
-    }
+    res[snakeKey] = obj[key];
   }
   return res;
 };
@@ -168,11 +164,7 @@ const toCamel = (obj: any): any => {
   const res: any = {};
   for (const key of Object.keys(obj)) {
     const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-    if (key === 'created_at' && typeof obj[key] === 'string') {
-      res['createdAt'] = new Date(obj[key]).getTime();
-    } else {
-      res[camelKey] = obj[key];
-    }
+    res[camelKey] = obj[key];
   }
   return res;
 };
