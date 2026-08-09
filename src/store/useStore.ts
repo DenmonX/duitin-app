@@ -152,7 +152,8 @@ const toSnake = (obj: any): any => {
   if (Array.isArray(obj)) return obj.map(toSnake);
   const res: any = {};
   for (const key of Object.keys(obj)) {
-    const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    let snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    if (snakeKey === 'limit' && obj.categoryId !== undefined) snakeKey = 'limit_amount';
     res[snakeKey] = obj[key];
   }
   return res;
@@ -163,7 +164,8 @@ const toCamel = (obj: any): any => {
   if (Array.isArray(obj)) return obj.map(toCamel);
   const res: any = {};
   for (const key of Object.keys(obj)) {
-    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    let camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    if (camelKey === 'limitAmount') camelKey = 'limit';
     res[camelKey] = obj[key];
   }
   return res;
@@ -513,7 +515,7 @@ export const useStore = create<AppState>()(
       },
       editBill: (id, bill) => {
         set((state) => ({ bills: state.bills.map(b => b.id === id ? { ...b, ...bill } : b) }));
-        supabase.from('bills').update(bill).eq('id', id).then();
+        supabase.from('bills').update(toSnake(bill)).eq('id', id).then();
       },
       deleteBill: (id) => {
         set((state) => ({ bills: state.bills.filter(b => b.id !== id) }));
@@ -524,7 +526,7 @@ export const useStore = create<AppState>()(
         set((state) => ({ goals: state.goals.map(g => g.id === id ? { ...g, currentAmount: g.currentAmount + amount } : g) }));
         const state = get();
         const goal = state.goals.find(g => g.id === id);
-        if (goal) supabase.from('goals').update({ currentAmount: goal.currentAmount }).eq('id', id).then();
+        if (goal) supabase.from('goals').update(toSnake({ currentAmount: goal.currentAmount })).eq('id', id).then();
       },
       addGoal: (goal) => {
         const id = Math.random().toString(36).substring(2, 9);
@@ -533,7 +535,7 @@ export const useStore = create<AppState>()(
       },
       editGoal: (id, goal) => {
         set((state) => ({ goals: state.goals.map(g => g.id === id ? { ...g, ...goal } : g) }));
-        supabase.from('goals').update(goal).eq('id', id).then();
+        supabase.from('goals').update(toSnake(goal)).eq('id', id).then();
       },
       deleteGoal: (id) => {
         set((state) => ({ goals: state.goals.filter(g => g.id !== id) }));
@@ -542,7 +544,7 @@ export const useStore = create<AppState>()(
 
       payDebt: (id) => {
         set((state) => ({ debts: state.debts.map(d => d.id === id ? { ...d, status: "paid" } : d) }));
-        supabase.from('debts').update({ status: "paid" }).eq('id', id).then();
+        supabase.from('debts').update(toSnake({ status: "paid" })).eq('id', id).then();
       },
       addDebt: (debt) => {
         const id = Math.random().toString(36).substring(2, 9);
@@ -551,7 +553,7 @@ export const useStore = create<AppState>()(
       },
       editDebt: (id, debt) => {
         set((state) => ({ debts: state.debts.map(d => d.id === id ? { ...d, ...debt } : d) }));
-        supabase.from('debts').update(debt).eq('id', id).then();
+        supabase.from('debts').update(toSnake(debt)).eq('id', id).then();
       },
       deleteDebt: (id) => {
         set((state) => ({ debts: state.debts.filter(d => d.id !== id) }));
@@ -565,7 +567,7 @@ export const useStore = create<AppState>()(
       },
       editBudget: (id, budget) => {
         set((state) => ({ budgets: state.budgets.map(b => b.id === id ? { ...b, ...budget } : b) }));
-        supabase.from('budgets').update(budget).eq('id', id).then();
+        supabase.from('budgets').update(toSnake(budget)).eq('id', id).then();
       },
       deleteBudget: (id) => {
         set((state) => ({ budgets: state.budgets.filter(b => b.id !== id) }));
