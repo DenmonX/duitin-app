@@ -20,23 +20,7 @@ import { useStore } from "@/store/useStore";
 
 export default function ProfilePage() {
   const [isClient, setIsClient] = useState(false);
-  const { user, transactions, updateUser, migrateToSupabase, fetchFromSupabase } = useStore();
-  const [isMigrating, setIsMigrating] = useState(false);
-  const [isFetching, setIsFetching] = useState(false);
-
-  const handleMigrate = async () => {
-    setIsMigrating(true);
-    await migrateToSupabase();
-    setIsMigrating(false);
-    alert("Berhasil unggah data ke Supabase!");
-  };
-
-  const handleFetch = async () => {
-    setIsFetching(true);
-    await fetchFromSupabase();
-    setIsFetching(false);
-    alert("Berhasil tarik data dari Supabase!");
-  };
+  const { user, transactions, updateUser } = useStore();
   const { theme, setTheme } = useTheme();
   
   const [isThemeOpen, setIsThemeOpen] = useState(false);
@@ -155,36 +139,6 @@ export default function ProfilePage() {
         </Card>
       </div>
 
-      {/* Sync Menu */}
-      <div className="px-5 space-y-2 mt-6">
-        <h3 className="font-semibold text-base text-foreground mb-4 text-center">Database Sync</h3>
-        
-        <div className="bg-card/40 border border-border/50 rounded-2xl overflow-hidden divide-y divide-border/50">
-          
-          <div onClick={handleMigrate} className="flex items-center justify-between p-4 hover:bg-secondary/50 transition-colors cursor-pointer active:bg-secondary">
-            <div className="flex items-center gap-4">
-              <CloudUpload className="w-5 h-5 text-emerald-500" />
-              <div>
-                <p className="font-medium text-sm">Unggah ke Cloud (Migrasi)</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{isMigrating ? "Proses unggah..." : "Simpan semua data ke Supabase"}</p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          </div>
-
-          <div onClick={handleFetch} className="flex items-center justify-between p-4 hover:bg-secondary/50 transition-colors cursor-pointer active:bg-secondary">
-            <div className="flex items-center gap-4">
-              <CloudDownload className="w-5 h-5 text-blue-500" />
-              <div>
-                <p className="font-medium text-sm">Tarik dari Cloud</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{isFetching ? "Proses penarikan..." : "Ambil data terbaru dari Supabase"}</p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          </div>
-
-        </div>
-      </div>
 
       {/* Settings Menu */}
       <div className="px-5 space-y-2">
